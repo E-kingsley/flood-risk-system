@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Niger Delta Flood Risk Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="brand-icon">🌊</span>
+      <div>
+        <h1>Flood Risk <span class="badge">Niger Delta</span></h1>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="predict">Predict</button>
+      <button class="tab-btn" data-tab="history">History &amp; Analytics</button>
+    </nav>
+    <div class="topbar-status">
+      <span class="pulse-dot"></span>
+      <span>System Live</span>
+    </div>
+  </header>
+
+  <main class="views">
+    <!-- PREDICT VIEW -->
+    <section id="predictView" class="view active">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="field">
+            <label for="stateSelect">State</label>
+            <select id="stateSelect">
+              <option value="">Loading states...</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="lgaSelect">LGA</label>
+            <select id="lgaSelect" disabled>
+              <option value="">Select a state first</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="monthSelect">Month</label>
+              <select id="monthSelect"></select>
+            </div>
+            <div class="field">
+              <label for="yearSelect">Year</label>
+              <select id="yearSelect"></select>
+            </div>
+          </div>
+
+          <button id="predictBtn" disabled>Predict Flood Risk</button>
+
+          <div id="statusMessage" class="status-message hidden"></div>
+
+          <div class="legend">
+            <span class="legend-item"><span class="dot low"></span> Low Risk</span>
+            <span class="legend-item"><span class="dot moderate"></span> Moderate Risk</span>
+            <span class="legend-item"><span class="dot high"></span> High Risk</span>
+          </div>
+        </aside>
+
+        <div class="map-and-results">
+          <div class="map-container">
+            <div id="map"></div>
+          </div>
+
+          <div id="resultTiles" class="result-tiles hidden">
+            <div class="tile">
+              <span class="tile-label">Risk Level</span>
+              <span id="tileRiskValue" class="tile-value">-</span>
+              <span id="tileRiskBadge" class="risk-badge">-</span>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Confidence</span>
+              <span id="tileConfidence" class="tile-value">-</span>
+              <span class="tile-sub">top class probability</span>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Data Mode</span>
+              <span id="tileMode" class="tile-value mode-value">-</span>
+              <span id="tileModeSub" class="tile-sub">-</span>
+            </div>
+            <div class="tile">
+              <span class="tile-label">Top Factor</span>
+              <span id="tileTopFactor" class="tile-value tile-value-small">-</span>
+              <span class="tile-sub">strongest contributor</span>
+            </div>
+          </div>
+
+          <div id="resultDetail" class="result-detail hidden">
+            <h2 id="resultLgaName"></h2>
+            <div class="probability-bars">
+              <div class="prob-row">
+                <span>Low</span>
+                <div class="prob-track"><div id="probLow" class="prob-fill low"></div></div>
+                <span id="probLowPct"></span>
+              </div>
+              <div class="prob-row">
+                <span>Moderate</span>
+                <div class="prob-track"><div id="probModerate" class="prob-fill moderate"></div></div>
+                <span id="probModeratePct"></span>
+              </div>
+              <div class="prob-row">
+                <span>High</span>
+                <div class="prob-track"><div id="probHigh" class="prob-fill high"></div></div>
+                <span id="probHighPct"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY VIEW -->
+    <section id="historyView" class="view">
+      <div class="history-wrap">
+        <div class="history-controls">
+          <div class="field">
+            <label for="histStateSelect">State</label>
+            <select id="histStateSelect"><option value="">Loading states...</option></select>
+          </div>
+          <div class="field">
+            <label for="histLgaSelect">LGA</label>
+            <select id="histLgaSelect" disabled><option value="">Select a state first</option></select>
+          </div>
+          <button id="histLoadBtn" class="primary-btn" disabled>Show history</button>
+          <button id="histCsvBtn" class="secondary-btn" disabled>Download CSV</button>
+        </div>
+
+        <div id="histStatus" class="status-message hidden"></div>
+
+        <div id="histEmpty" class="hist-empty">
+          Choose a state and LGA to see its monthly flood risk from 2000 to 2024.
+        </div>
+
+        <div id="histTiles" class="result-tiles hist-tiles hidden">
+          <div class="tile">
+            <span class="tile-label">Months analysed</span>
+            <span id="histTotal" class="tile-value">-</span>
+            <span class="tile-sub">2000 to 2024</span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">High-risk months</span>
+            <span id="histHigh" class="tile-value" style="color: var(--risk-high)">-</span>
+            <span id="histHighSub" class="tile-sub">-</span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">Moderate-risk months</span>
+            <span id="histModerate" class="tile-value" style="color: var(--risk-moderate)">-</span>
+            <span id="histModerateSub" class="tile-sub">-</span>
+          </div>
+          <div class="tile">
+            <span class="tile-label">Riskiest time of year</span>
+            <span id="histPeak" class="tile-value tile-value-small">-</span>
+            <span class="tile-sub">month with most high-risk records</span>
+          </div>
+        </div>
+
+        <div id="histChartCard" class="chart-card hidden">
+          <h2 id="histChartTitle"></h2>
+          <div class="chart-canvas-wrap"><canvas id="histChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

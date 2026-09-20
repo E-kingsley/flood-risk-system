@@ -1,0 +1,23 @@
+# secrets - never commit these
+.env
+*.env
+!.env.example
+
+# virtual environment
+venv/
+.venv/
+
+# python junk
+__pycache__/
+*.pyc
+
+# large or reproducible data
+data_collection/downloads/
+data_collection/processed/
+data/raw/
+*.tif
+*.tiff
+
+# editor/OS files
+.vscode/
+Thumbs.db

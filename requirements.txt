@@ -1,0 +1,30 @@
+# --- Core / Database ---
+Flask==3.0.3
+Flask-Cors==4.0.1
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.35
+python-dotenv==1.0.1
+
+# --- Data collection & HTTP ---
+requests==2.32.3
+tenacity==8.5.0        # retry/backoff logic for API rate limits
+
+# --- Data science / preprocessing ---
+pandas==2.2.3
+numpy==1.26.4
+geopandas==0.14.4
+rasterio==1.3.11
+shapely==2.0.6
+
+# --- Machine learning ---
+scikit-learn==1.5.2
+xgboost==2.1.1
+imbalanced-learn==0.12.4   # SMOTE
+joblib==1.4.2
+tensorflow==2.17.0         # Keras ANN (use tensorflow-cpu if install struggles on 8GB RAM)
+
+# --- Testing ---
+pytest==8.3.3
+
+# --- Utility ---
+tqdm==4.66.5
