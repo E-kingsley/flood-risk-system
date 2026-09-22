@@ -14,7 +14,8 @@ def init_db_pool(app):
             port=app.config["DB_PORT"],
             dbname=app.config["DB_NAME"],
             user=app.config["DB_USER"],
-            password=app.config["DB_PASSWORD"]
+            password=app.config["DB_PASSWORD"],
+            sslmode="require"
         )
 
 def get_db():
