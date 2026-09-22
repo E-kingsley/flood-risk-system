@@ -21,3 +21,5 @@ data/raw/
 # editor/OS files
 .vscode/
 Thumbs.db
+
+backups/
