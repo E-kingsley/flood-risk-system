@@ -393,6 +393,38 @@ button#predictBtn:disabled {
 .prob-fill.moderate { background: var(--risk-moderate); }
 .prob-fill.high { background: var(--risk-high); }
 
+/* ---------- Results panel collapse toggle ---------- */
+
+.results-panel {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.results-toggle {
+  position: absolute;
+  top: -27px;
+  right: 16px;
+  width: 32px;
+  height: 26px;
+  background: var(--navy-800);
+  color: var(--text-light);
+  border: 1px solid var(--navy-700);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.results-toggle:hover {
+  background: var(--navy-700);
+}
+
+.results-panel.collapsed #resultTiles,
+.results-panel.collapsed #resultDetail {
+  display: none !important;
+}
+
 /* ---------- History view ---------- */
 
 .history-wrap {

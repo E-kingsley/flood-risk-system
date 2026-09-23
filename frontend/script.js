@@ -56,6 +56,21 @@ function bindTabs() {
   });
 }
 
+/* ---------- Results panel collapse ---------- */
+
+function bindResultsToggle() {
+  const btn = document.getElementById("resultsToggle");
+  const panel = document.getElementById("resultsPanel");
+
+  btn.addEventListener("click", () => {
+    const collapsed = panel.classList.toggle("collapsed");
+    btn.textContent = collapsed ? "▸" : "▾";
+    btn.title = collapsed ? "Expand results panel" : "Collapse results panel";
+    // Leaflet doesn't know its container resized until told.
+    setTimeout(() => map.invalidateSize(), 260);
+  });
+}
+
 /* ---------- Map ---------- */
 
 function initMap() {
@@ -540,6 +555,7 @@ function bindEvents() {
   document.getElementById("histLoadBtn").addEventListener("click", handleHistoryLoad);
   document.getElementById("histCsvBtn").addEventListener("click", downloadHistoryCsv);
 
+  bindResultsToggle();
   bindTabs();
 }
 

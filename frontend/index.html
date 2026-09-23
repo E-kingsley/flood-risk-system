@@ -71,46 +71,50 @@
             <div id="map"></div>
           </div>
 
-          <div id="resultTiles" class="result-tiles hidden">
-            <div class="tile">
-              <span class="tile-label">Risk Level</span>
-              <span id="tileRiskValue" class="tile-value">-</span>
-              <span id="tileRiskBadge" class="risk-badge">-</span>
-            </div>
-            <div class="tile">
-              <span class="tile-label">Confidence</span>
-              <span id="tileConfidence" class="tile-value">-</span>
-              <span class="tile-sub">top class probability</span>
-            </div>
-            <div class="tile">
-              <span class="tile-label">Data Mode</span>
-              <span id="tileMode" class="tile-value mode-value">-</span>
-              <span id="tileModeSub" class="tile-sub">-</span>
-            </div>
-            <div class="tile">
-              <span class="tile-label">Top Factor</span>
-              <span id="tileTopFactor" class="tile-value tile-value-small">-</span>
-              <span class="tile-sub">strongest contributor</span>
-            </div>
-          </div>
+          <div id="resultsPanel" class="results-panel">
+            <button id="resultsToggle" class="results-toggle" title="Collapse results panel">▾</button>
 
-          <div id="resultDetail" class="result-detail hidden">
-            <h2 id="resultLgaName"></h2>
-            <div class="probability-bars">
-              <div class="prob-row">
-                <span>Low</span>
-                <div class="prob-track"><div id="probLow" class="prob-fill low"></div></div>
-                <span id="probLowPct"></span>
+            <div id="resultTiles" class="result-tiles hidden">
+              <div class="tile">
+                <span class="tile-label">Risk Level</span>
+                <span id="tileRiskValue" class="tile-value">-</span>
+                <span id="tileRiskBadge" class="risk-badge">-</span>
               </div>
-              <div class="prob-row">
-                <span>Moderate</span>
-                <div class="prob-track"><div id="probModerate" class="prob-fill moderate"></div></div>
-                <span id="probModeratePct"></span>
+              <div class="tile">
+                <span class="tile-label">Confidence</span>
+                <span id="tileConfidence" class="tile-value">-</span>
+                <span class="tile-sub">top class probability</span>
               </div>
-              <div class="prob-row">
-                <span>High</span>
-                <div class="prob-track"><div id="probHigh" class="prob-fill high"></div></div>
-                <span id="probHighPct"></span>
+              <div class="tile">
+                <span class="tile-label">Data Mode</span>
+                <span id="tileMode" class="tile-value mode-value">-</span>
+                <span id="tileModeSub" class="tile-sub">-</span>
+              </div>
+              <div class="tile">
+                <span class="tile-label">Top Factor</span>
+                <span id="tileTopFactor" class="tile-value tile-value-small">-</span>
+                <span class="tile-sub">strongest contributor</span>
+              </div>
+            </div>
+
+            <div id="resultDetail" class="result-detail hidden">
+              <h2 id="resultLgaName"></h2>
+              <div class="probability-bars">
+                <div class="prob-row">
+                  <span>Low</span>
+                  <div class="prob-track"><div id="probLow" class="prob-fill low"></div></div>
+                  <span id="probLowPct"></span>
+                </div>
+                <div class="prob-row">
+                  <span>Moderate</span>
+                  <div class="prob-track"><div id="probModerate" class="prob-fill moderate"></div></div>
+                  <span id="probModeratePct"></span>
+                </div>
+                <div class="prob-row">
+                  <span>High</span>
+                  <div class="prob-track"><div id="probHigh" class="prob-fill high"></div></div>
+                  <span id="probHighPct"></span>
+                </div>
               </div>
             </div>
           </div>
