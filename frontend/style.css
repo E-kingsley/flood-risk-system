@@ -396,28 +396,28 @@ button#predictBtn:disabled {
 /* ---------- Results panel collapse toggle ---------- */
 
 .results-panel {
-  position: relative;
   flex-shrink: 0;
 }
 
-.results-toggle {
-  position: absolute;
-  top: -27px;
-  right: 16px;
-  width: 32px;
-  height: 26px;
+.results-panel-header {
+  display: flex;
+  justify-content: flex-end;
   background: var(--navy-800);
-  color: var(--text-light);
-  border: 1px solid var(--navy-700);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  font-size: 13px;
+  border-top: 1px solid var(--navy-700);
+  padding: 4px 12px;
+}
+
+.results-toggle {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-size: 12px;
   cursor: pointer;
-  z-index: 10;
+  padding: 4px 8px;
 }
 
 .results-toggle:hover {
-  background: var(--navy-700);
+  color: var(--text-light);
 }
 
 .results-panel.collapsed #resultTiles,

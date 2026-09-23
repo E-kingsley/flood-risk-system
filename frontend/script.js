@@ -64,8 +64,7 @@ function bindResultsToggle() {
 
   btn.addEventListener("click", () => {
     const collapsed = panel.classList.toggle("collapsed");
-    btn.textContent = collapsed ? "▸" : "▾";
-    btn.title = collapsed ? "Expand results panel" : "Collapse results panel";
+    btn.textContent = collapsed ? "Show results ▸" : "Hide results ▾";
     // Leaflet doesn't know its container resized until told.
     setTimeout(() => map.invalidateSize(), 260);
   });
