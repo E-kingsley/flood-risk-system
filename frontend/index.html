@@ -59,6 +59,15 @@
 
           <div id="statusMessage" class="status-message hidden"></div>
 
+          <div class="field">
+            <label for="alertThreshold">Alert me when risk reaches</label>
+            <select id="alertThreshold">
+              <option value="off">Off</option>
+              <option value="1">Moderate or higher</option>
+              <option value="2" selected>High only</option>
+            </select>
+          </div>
+
           <div class="legend">
             <span class="legend-item"><span class="dot low"></span> Low Risk</span>
             <span class="legend-item"><span class="dot moderate"></span> Moderate Risk</span>
@@ -185,5 +194,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="script.js"></script>
+  <div id="toastContainer" class="toast-container"></div>
 </body>
 </html>

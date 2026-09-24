@@ -70,6 +70,34 @@ function bindResultsToggle() {
   });
 }
 
+/* ---------- Alert toast ---------- */
+
+function showAlertToast(result) {
+  const select = document.getElementById("alertThreshold");
+  if (!select || select.value === "off") return;
+
+  const threshold = parseInt(select.value, 10);
+  if (result.predicted_risk_class < threshold) return;
+
+  const meta = RISK_META[result.predicted_risk_class];
+  const container = document.getElementById("toastContainer");
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${meta.css}`;
+  toast.innerHTML = `
+    <div class="toast-title">⚠ Flood Risk Alert</div>
+    <div class="toast-body">${result.lga_name} is forecast <strong>${meta.label}</strong> for ${MONTH_NAMES[result.month - 1]} ${result.year}.</div>
+  `;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add("show"));
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 300);
+  }, 6000);
+}
+
 /* ---------- Map ---------- */
 
 function initMap() {
@@ -283,6 +311,7 @@ function renderResult(result) {
   document.getElementById("probHighPct").textContent = `${(result.probabilities.high_risk * 100).toFixed(1)}%`;
 
   highlightLga(result.lga_name, result.predicted_risk_class, topProb);
+  showAlertToast(result);
 }
 
 async function handlePredictClick() {
