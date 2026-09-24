@@ -260,6 +260,30 @@ button#predictBtn:disabled {
 .dot.moderate { background: var(--risk-moderate); }
 .dot.high { background: var(--risk-high); }
 
+/* ---------- Compare toggle checkbox ---------- */
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal-500);
+  cursor: pointer;
+}
+
+.compare-toggle-row {
+  margin-top: -6px;
+}
+
 .map-and-results {
   flex: 1;
   display: flex;
@@ -393,6 +417,62 @@ button#predictBtn:disabled {
 .prob-fill.moderate { background: var(--risk-moderate); }
 .prob-fill.high { background: var(--risk-high); }
 
+/* ---------- Compare result ---------- */
+
+.compare-result {
+  background: var(--navy-900);
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--navy-700);
+}
+
+.compare-delta {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--navy-800);
+}
+
+.compare-delta.delta-up { color: var(--risk-high); }
+.compare-delta.delta-down { color: var(--risk-low); }
+.compare-delta.delta-flat { color: var(--text-muted); }
+
+.compare-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.compare-col {
+  background: var(--navy-800);
+  border: 1px solid var(--navy-700);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.compare-period-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.compare-risk-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.compare-risk-value.low { color: var(--risk-low); }
+.compare-risk-value.moderate { color: var(--risk-moderate); }
+.compare-risk-value.high { color: var(--risk-high); }
+
+.compare-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
 /* ---------- Results panel collapse toggle ---------- */
 
 .results-panel {
@@ -421,7 +501,8 @@ button#predictBtn:disabled {
 }
 
 .results-panel.collapsed #resultTiles,
-.results-panel.collapsed #resultDetail {
+.results-panel.collapsed #resultDetail,
+.results-panel.collapsed #compareResult {
   display: none !important;
 }
 
@@ -650,5 +731,9 @@ button#predictBtn:disabled {
 
   .history-controls .field {
     flex: 1 1 100%;
+  }
+
+  .compare-columns {
+    grid-template-columns: 1fr;
   }
 }

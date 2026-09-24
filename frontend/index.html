@@ -55,6 +55,24 @@
             </div>
           </div>
 
+          <div class="field-row compare-toggle-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="compareToggle" />
+              Compare with another period
+            </label>
+          </div>
+
+          <div id="comparePeriodFields" class="field-row hidden">
+            <div class="field">
+              <label for="monthSelect2">Month</label>
+              <select id="monthSelect2"></select>
+            </div>
+            <div class="field">
+              <label for="yearSelect2">Year</label>
+              <select id="yearSelect2"></select>
+            </div>
+          </div>
+
           <button id="predictBtn" disabled>Predict Flood Risk</button>
 
           <div id="statusMessage" class="status-message hidden"></div>
@@ -125,6 +143,24 @@
                   <span>High</span>
                   <div class="prob-track"><div id="probHigh" class="prob-fill high"></div></div>
                   <span id="probHighPct"></span>
+                </div>
+              </div>
+            </div>
+
+            <div id="compareResult" class="compare-result hidden">
+              <div id="compareDelta" class="compare-delta"></div>
+              <div class="compare-columns">
+                <div class="compare-col">
+                  <div id="compareALabel" class="compare-period-label"></div>
+                  <div id="compareARisk" class="compare-risk-value"></div>
+                  <div class="compare-sub">Confidence: <span id="compareAConfidence"></span></div>
+                  <div class="compare-sub">Mode: <span id="compareAMode"></span></div>
+                </div>
+                <div class="compare-col">
+                  <div id="compareBLabel" class="compare-period-label"></div>
+                  <div id="compareBRisk" class="compare-risk-value"></div>
+                  <div class="compare-sub">Confidence: <span id="compareBConfidence"></span></div>
+                  <div class="compare-sub">Mode: <span id="compareBMode"></span></div>
                 </div>
               </div>
             </div>

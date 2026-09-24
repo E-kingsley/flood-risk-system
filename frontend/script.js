@@ -70,6 +70,19 @@ function bindResultsToggle() {
   });
 }
 
+/* ---------- Compare toggle ---------- */
+
+function bindCompareToggle() {
+  const checkbox = document.getElementById("compareToggle");
+  const fields = document.getElementById("comparePeriodFields");
+  const predictBtn = document.getElementById("predictBtn");
+
+  checkbox.addEventListener("change", () => {
+    fields.classList.toggle("hidden", !checkbox.checked);
+    predictBtn.textContent = checkbox.checked ? "Compare Flood Risk" : "Predict Flood Risk";
+  });
+}
+
 /* ---------- Alert toast ---------- */
 
 function showAlertToast(result) {
@@ -235,15 +248,15 @@ function populateLgaDropdown(stateName) {
   predictBtn.disabled = true; // re-enabled once an LGA is actually picked
 }
 
-function populateMonthYearDropdowns() {
-  const monthSelect = document.getElementById("monthSelect");
+function populateMonthYearDropdownsFor(monthId, yearId) {
+  const monthSelect = document.getElementById(monthId);
   monthSelect.innerHTML = MONTH_NAMES
     .map((name, idx) => `<option value="${idx + 1}">${name}</option>`)
     .join("");
 
   // Historical data covers 2000-2024; months beyond that route through
   // live forecasting (up to ~7 months ahead) on the backend automatically.
-  const yearSelect = document.getElementById("yearSelect");
+  const yearSelect = document.getElementById(yearId);
   const years = [];
   for (let y = 2027; y >= 2000; y--) years.push(y);
   yearSelect.innerHTML = years
@@ -251,12 +264,26 @@ function populateMonthYearDropdowns() {
     .join("");
 }
 
+function populateMonthYearDropdowns() {
+  populateMonthYearDropdownsFor("monthSelect", "yearSelect");
+  populateMonthYearDropdownsFor("monthSelect2", "yearSelect2");
+}
+
 /* ---------- Predict ---------- */
 
 function setPredictLoading(isLoading) {
   const btn = document.getElementById("predictBtn");
+  const isCompare = document.getElementById("compareToggle").checked;
   btn.disabled = isLoading;
-  btn.textContent = isLoading ? "Predicting..." : "Predict Flood Risk";
+  btn.textContent = isLoading
+    ? (isCompare ? "Comparing..." : "Predicting...")
+    : (isCompare ? "Compare Flood Risk" : "Predict Flood Risk");
+}
+
+function hideAllResultViews() {
+  document.getElementById("resultTiles").classList.add("hidden");
+  document.getElementById("resultDetail").classList.add("hidden");
+  document.getElementById("compareResult").classList.add("hidden");
 }
 
 function renderResult(result) {
@@ -267,6 +294,7 @@ function renderResult(result) {
     result.probabilities.high_risk
   );
 
+  hideAllResultViews();
   document.getElementById("resultTiles").classList.remove("hidden");
   document.getElementById("resultDetail").classList.remove("hidden");
 
@@ -314,6 +342,57 @@ function renderResult(result) {
   showAlertToast(result);
 }
 
+function fillComparePeriod(prefix, result, meta, topProb) {
+  document.getElementById(`${prefix}Label`).textContent = `${MONTH_NAMES[result.month - 1]} ${result.year}`;
+  const riskEl = document.getElementById(`${prefix}Risk`);
+  riskEl.textContent = meta.label;
+  riskEl.className = `compare-risk-value ${meta.css}`;
+  document.getElementById(`${prefix}Confidence`).textContent = `${(topProb * 100).toFixed(1)}%`;
+  document.getElementById(`${prefix}Mode`).textContent =
+    result.mode.charAt(0).toUpperCase() + result.mode.slice(1);
+}
+
+function renderComparison(a, b) {
+  const metaA = RISK_META[a.predicted_risk_class];
+  const metaB = RISK_META[b.predicted_risk_class];
+  const topA = Math.max(a.probabilities.low_risk, a.probabilities.moderate_risk, a.probabilities.high_risk);
+  const topB = Math.max(b.probabilities.low_risk, b.probabilities.moderate_risk, b.probabilities.high_risk);
+
+  hideAllResultViews();
+  document.getElementById("compareResult").classList.remove("hidden");
+
+  const deltaClass = b.predicted_risk_class - a.predicted_risk_class;
+  const deltaEl = document.getElementById("compareDelta");
+  if (deltaClass > 0) {
+    deltaEl.textContent = `Risk increased: ${metaA.label} → ${metaB.label}`;
+    deltaEl.className = "compare-delta delta-up";
+  } else if (deltaClass < 0) {
+    deltaEl.textContent = `Risk decreased: ${metaA.label} → ${metaB.label}`;
+    deltaEl.className = "compare-delta delta-down";
+  } else {
+    deltaEl.textContent = `Risk unchanged: ${metaA.label} in both periods`;
+    deltaEl.className = "compare-delta delta-flat";
+  }
+
+  fillComparePeriod("compareA", a, metaA, topA);
+  fillComparePeriod("compareB", b, metaB, topB);
+
+  // Highlight using the second (later) period's result on the map.
+  highlightLga(b.lga_name, b.predicted_risk_class, topB);
+  showAlertToast(b);
+}
+
+async function fetchPrediction(lgaId, month, year) {
+  const url = `${API_BASE}/predict?lga_id=${lgaId}&month=${month}&year=${year}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) {
+    const message = data.details || data.error || `Request failed (status ${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}
+
 async function handlePredictClick() {
   const lgaId = document.getElementById("lgaSelect").value;
   const month = document.getElementById("monthSelect").value;
@@ -321,23 +400,39 @@ async function handlePredictClick() {
 
   if (!lgaId || !month || !year) return;
 
+  const isCompare = document.getElementById("compareToggle").checked;
+
+  if (isCompare) {
+    const month2 = document.getElementById("monthSelect2").value;
+    const year2 = document.getElementById("yearSelect2").value;
+    if (!month2 || !year2) return;
+
+    setPredictLoading(true);
+    hideStatus();
+
+    try {
+      const [dataA, dataB] = await Promise.all([
+        fetchPrediction(lgaId, month, year),
+        fetchPrediction(lgaId, month2, year2),
+      ]);
+      renderComparison(dataA, dataB);
+    } catch (err) {
+      showStatus(err.message, true);
+      console.error(err);
+    } finally {
+      setPredictLoading(false);
+    }
+    return;
+  }
+
   setPredictLoading(true);
   hideStatus();
 
   try {
-    const url = `${API_BASE}/predict?lga_id=${lgaId}&month=${month}&year=${year}`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (!res.ok) {
-      const message = data.details || data.error || `Request failed (status ${res.status})`;
-      showStatus(message, true);
-      return;
-    }
-
+    const data = await fetchPrediction(lgaId, month, year);
     renderResult(data);
   } catch (err) {
-    showStatus("Couldn't reach the backend. Is your Flask server running?", true);
+    showStatus(err.message, true);
     console.error(err);
   } finally {
     setPredictLoading(false);
@@ -632,6 +727,7 @@ function bindEvents() {
   document.getElementById("histCsvBtn").addEventListener("click", downloadHistoryCsv);
 
   bindResultsToggle();
+  bindCompareToggle();
   bindTabs();
 }
 
