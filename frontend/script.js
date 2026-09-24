@@ -29,6 +29,7 @@ let snapshotActive = false;
 
 let lastPredictionResult = null;
 let lastOutlookResults = [];
+let outlookRequestId = 0;
 
 function normalizeName(name) {
   return (name || "").trim().toLowerCase();
@@ -491,6 +492,8 @@ function hideAllResultViews() {
 }
 
 async function loadRiskOutlook(lgaId, startMonth, startYear) {
+  const requestId = ++outlookRequestId;
+
   const strip = document.getElementById("outlookStrip");
   strip.classList.add("hidden");
   strip.innerHTML = "";
@@ -518,6 +521,8 @@ async function loadRiskOutlook(lgaId, startMonth, startYear) {
       break;
     }
   }
+
+  if (requestId !== outlookRequestId) return;
 
   lastOutlookResults = results;
 
