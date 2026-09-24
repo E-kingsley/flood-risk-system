@@ -15,6 +15,7 @@ let geojsonLayer;
 let lgaLayersByName = {}; // normalized LGA name -> Leaflet layer
 let allLgas = [];
 let currentLgaLayer = null; // the layer currently highlighted by a prediction
+let snapshotActive = false;
 
 function normalizeName(name) {
   return (name || "").trim().toLowerCase();
@@ -199,6 +200,114 @@ function highlightLga(lgaName, riskClass, confidence = 1) {
   currentLgaLayer = layer;
 }
 
+/* ---------- All-LGA snapshot ---------- */
+
+function clearAllLgaStyles() {
+  Object.values(lgaLayersByName).forEach((layer) => layer.setStyle(defaultLgaStyle()));
+}
+
+function resetLgaTooltips() {
+  Object.entries(lgaLayersByName).forEach(([key, layer]) => {
+    const match = allLgas.find((l) => normalizeName(l.lga_name) === key);
+    layer.bindTooltip(match ? match.lga_name : key);
+  });
+}
+
+function renderRegionSnapshot(data) {
+  clearAllLgaStyles();
+  currentLgaLayer = null;
+
+  data.results.forEach((r) => {
+    const layer = lgaLayersByName[normalizeName(r.lga_name)];
+    if (!layer) return;
+
+    const meta = RISK_META[r.predicted_risk_class];
+    const topProb = Math.max(
+      r.probabilities.low_risk,
+      r.probabilities.moderate_risk,
+      r.probabilities.high_risk
+    );
+    layer.setStyle({
+      color: meta.color,
+      weight: 1,
+      fillColor: meta.color,
+      fillOpacity: opacityForConfidence(topProb),
+    });
+    layer.bindTooltip(`${r.lga_name}: ${meta.label} (${(topProb * 100).toFixed(0)}%)`);
+  });
+
+  if (geojsonLayer && geojsonLayer.getBounds().isValid()) {
+    map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20] });
+  }
+}
+
+function showSnapshotStatus(message, isError = false) {
+  const el = document.getElementById("snapshotStatus");
+  el.textContent = message;
+  el.classList.remove("hidden", "error");
+  if (isError) el.classList.add("error");
+}
+
+function hideSnapshotStatus() {
+  document.getElementById("snapshotStatus").classList.add("hidden");
+}
+
+function exitSnapshotMode() {
+  snapshotActive = false;
+  const btn = document.getElementById("snapshotBtn");
+  btn.textContent = "Show All-LGA Snapshot";
+  btn.classList.remove("active");
+  clearAllLgaStyles();
+  resetLgaTooltips();
+}
+
+async function handleSnapshotClick() {
+  const btn = document.getElementById("snapshotBtn");
+
+  if (snapshotActive) {
+    exitSnapshotMode();
+    hideSnapshotStatus();
+    return;
+  }
+
+  const month = document.getElementById("monthSelect").value;
+  const year = document.getElementById("yearSelect").value;
+  if (!month || !year) {
+    showSnapshotStatus("Pick a month and year first.", true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Loading snapshot...";
+  hideSnapshotStatus();
+
+  try {
+    const url = `${API_BASE}/predict-region?month=${month}&year=${year}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok) {
+      const message = data.details || data.error || `Request failed (status ${res.status})`;
+      showSnapshotStatus(message, true);
+      return;
+    }
+
+    renderRegionSnapshot(data);
+    snapshotActive = true;
+    btn.classList.add("active");
+    btn.textContent = "Exit Snapshot Mode";
+  } catch (err) {
+    showSnapshotStatus("Couldn't reach the backend. Is your Flask server running?", true);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function bindSnapshotButton() {
+  document.getElementById("snapshotBtn").addEventListener("click", handleSnapshotClick);
+}
+
 /* ---------- Dropdowns ---------- */
 
 async function loadLgas() {
@@ -287,6 +396,10 @@ function hideAllResultViews() {
 }
 
 function renderResult(result) {
+  if (snapshotActive) {
+    exitSnapshotMode();
+  }
+
   const meta = RISK_META[result.predicted_risk_class];
   const topProb = Math.max(
     result.probabilities.low_risk,
@@ -353,6 +466,10 @@ function fillComparePeriod(prefix, result, meta, topProb) {
 }
 
 function renderComparison(a, b) {
+  if (snapshotActive) {
+    exitSnapshotMode();
+  }
+
   const metaA = RISK_META[a.predicted_risk_class];
   const metaB = RISK_META[b.predicted_risk_class];
   const topA = Math.max(a.probabilities.low_risk, a.probabilities.moderate_risk, a.probabilities.high_risk);
@@ -728,6 +845,7 @@ function bindEvents() {
 
   bindResultsToggle();
   bindCompareToggle();
+  bindSnapshotButton();
   bindTabs();
 }
 

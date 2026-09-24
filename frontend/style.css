@@ -284,6 +284,30 @@ button#predictBtn:disabled {
   margin-top: -6px;
 }
 
+/* ---------- All-LGA snapshot ---------- */
+
+button#snapshotBtn {
+  background: transparent;
+  color: var(--teal-400);
+  border: 1px solid var(--teal-500);
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+button#snapshotBtn:hover {
+  background: rgba(45, 212, 191, 0.12);
+}
+
+button#snapshotBtn.active {
+  background: var(--teal-500);
+  color: var(--navy-950);
+  border-color: var(--teal-500);
+}
+
 .map-and-results {
   flex: 1;
   display: flex;
