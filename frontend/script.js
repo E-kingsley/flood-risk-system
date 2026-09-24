@@ -17,6 +17,9 @@ let allLgas = [];
 let currentLgaLayer = null; // the layer currently highlighted by a prediction
 let snapshotActive = false;
 
+let lastPredictionResult = null;
+let lastOutlookResults = [];
+
 function normalizeName(name) {
   return (name || "").trim().toLowerCase();
 }
@@ -388,6 +391,10 @@ function hideAllResultViews() {
   document.getElementById("resultDetail").classList.add("hidden");
   document.getElementById("outlookStrip").classList.add("hidden");
   document.getElementById("compareResult").classList.add("hidden");
+
+  lastPredictionResult = null;
+  lastOutlookResults = [];
+  document.getElementById("outlookCsvBtn").disabled = true;
 }
 
 async function loadRiskOutlook(lgaId, startMonth, startYear) {
@@ -418,6 +425,8 @@ async function loadRiskOutlook(lgaId, startMonth, startYear) {
       break;
     }
   }
+
+  lastOutlookResults = results;
 
   if (results.length === 0) return;
 
@@ -457,6 +466,9 @@ function renderResult(result) {
     exitSnapshotMode();
   }
 
+  lastPredictionResult = result;
+  lastOutlookResults = [];
+
   const meta = RISK_META[result.predicted_risk_class];
   const topProb = Math.max(
     result.probabilities.low_risk,
@@ -465,6 +477,10 @@ function renderResult(result) {
   );
 
   hideAllResultViews();
+  // Restore single prediction result state after hideAllResultViews wiped it
+  lastPredictionResult = result;
+  document.getElementById("outlookCsvBtn").disabled = false;
+
   document.getElementById("resultTiles").classList.remove("hidden");
   document.getElementById("resultDetail").classList.remove("hidden");
 
@@ -615,6 +631,43 @@ async function handlePredictClick() {
   } finally {
     setPredictLoading(false);
   }
+}
+
+function downloadOutlookCsv() {
+  if (!lastPredictionResult) return;
+
+  const header = ["lga", "year", "month", "risk_class", "risk_label", "confidence", "mode"];
+  const allItems = [lastPredictionResult, ...lastOutlookResults];
+
+  const rows = allItems.map((item) => {
+    const topProb = Math.max(
+      item.probabilities.low_risk,
+      item.probabilities.moderate_risk,
+      item.probabilities.high_risk
+    );
+    return [
+      `"${item.lga_name.replace(/"/g, '""')}"`,
+      item.year,
+      item.month,
+      item.predicted_risk_class,
+      RISK_META[item.predicted_risk_class].label,
+      topProb,
+      item.mode,
+    ];
+  });
+
+  const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const cleanLga = lastPredictionResult.lga_name.replace(/\s+/g, "_");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${cleanLga}_outlook_${lastPredictionResult.year}_${lastPredictionResult.month}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /* ---------- History & Analytics ---------- */
@@ -890,6 +943,7 @@ function bindEvents() {
   });
 
   document.getElementById("predictBtn").addEventListener("click", handlePredictClick);
+  document.getElementById("outlookCsvBtn").addEventListener("click", downloadOutlookCsv);
 
   document.getElementById("histStateSelect").addEventListener("change", (e) => {
     populateHistoryLgas(e.target.value);

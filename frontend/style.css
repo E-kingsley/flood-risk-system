@@ -547,9 +547,16 @@ button#snapshotBtn.active {
 .results-panel-header {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   background: var(--navy-800);
   border-top: 1px solid var(--navy-700);
   padding: 4px 12px;
+}
+
+.outlook-dl-btn {
+  padding: 4px 10px;
+  font-size: 12px;
 }
 
 .results-toggle {
