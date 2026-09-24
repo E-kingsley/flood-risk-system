@@ -320,3 +320,109 @@ def history():
             "error": "Failed to generate history.",
             "details": str(e)
         }), 500
+
+
+@api_bp.route("/predict-region", methods=["GET"])
+def predict_region():
+    """
+    Predicts flood risk for every LGA at once, for a single given month/year.
+
+    Only supports dates within the historical dataset (2000 - most recent
+    month on record). Running a live forecast for all 105 LGAs in one
+    request would mean 105 separate external API calls, which is too slow
+    and fragile for a single HTTP request — use the single-LGA /predict
+    endpoint for future dates instead.
+
+    Query params: month (int, 1-12), year (int).
+    Response: {"year", "month", "mode", "results": [
+        {"lga_id", "lga_name", "predicted_risk_class", "predicted_risk_label",
+         "probabilities": {"low_risk", "moderate_risk", "high_risk"}}, ...
+    ]}
+    """
+    try:
+        month = request.args.get("month", type=int)
+        year = request.args.get("year", type=int)
+
+        if month is None or year is None:
+            return jsonify({"error": "month and year query parameters are required."}), 400
+        if not (1 <= month <= 12):
+            return jsonify({"error": "month must be between 1 and 12."}), 400
+
+        conn = get_db()
+        max_year, max_month = _get_max_historical_period(conn)
+
+        if (year, month) > (max_year, max_month):
+            return jsonify({
+                "error": "Regional snapshot is only available for historical dates.",
+                "details": f"Latest historical data on record is {max_year}-{max_month:02d}. "
+                           "For future dates, use the single-LGA prediction on the Predict tab instead."
+            }), 400
+
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT l.lga_id, l.name, l.wetland_pct, l.built_up_pct, l.state_id,
+                       f.rainfall_anomaly_index, f.antecedent_precip_index,
+                       f.normalised_discharge_ratio, f.terrain_vulnerability_score,
+                       f.peak_season_flag
+                FROM lgas l
+                JOIN lga_monthly_features f ON f.lga_id = l.lga_id
+                WHERE f.year = %s AND f.month = %s
+                ORDER BY l.lga_id;
+            """, (year, month))
+            rows = cursor.fetchall()
+
+        if not rows:
+            return jsonify({"error": f"No historical data found for {year}-{month:02d}."}), 404
+
+        month_sin = float(np.sin(2 * np.pi * month / 12))
+        month_cos = float(np.cos(2 * np.pi * month / 12))
+
+        vectors = []
+        lga_meta = []
+        for lga_id, name, wetland_pct, built_up_pct, state_id, rai, api_idx, ndr, tvs, peak in rows:
+            state_dummies = {f"state_{sid}": (1 if state_id == sid else 0) for sid in STATE_DUMMY_IDS}
+            values = {
+                'rainfall_anomaly_index': float(rai) if rai is not None else 0.0,
+                'antecedent_precip_index': float(api_idx) if api_idx is not None else 0.0,
+                'normalised_discharge_ratio': float(ndr) if ndr is not None else 1.0,
+                'terrain_vulnerability_score': float(tvs) if tvs is not None else 0.0,
+                'peak_season_flag': int(bool(peak)),
+                'wetland_pct': float(wetland_pct) if wetland_pct is not None else 0.0,
+                'built_up_pct': float(built_up_pct) if built_up_pct is not None else 0.0,
+                **state_dummies,
+                'month_sin': month_sin,
+                'month_cos': month_cos,
+            }
+            vectors.append([values[f] for f in FEATURE_ORDER])
+            lga_meta.append((lga_id, name))
+
+        # One vectorized prediction across all 105 LGAs at once, rather
+        # than 105 separate model calls.
+        model = get_model()
+        proba = model.predict_proba(np.array(vectors, dtype=float))
+        classes = np.argmax(proba, axis=1)
+
+        results = [
+            {
+                "lga_id": lga_id,
+                "lga_name": name,
+                "predicted_risk_class": int(cls),
+                "predicted_risk_label": RISK_LABELS.get(int(cls), str(int(cls))),
+                "probabilities": {
+                    "low_risk": round(float(p[0]), 4),
+                    "moderate_risk": round(float(p[1]), 4),
+                    "high_risk": round(float(p[2]), 4),
+                },
+            }
+            for (lga_id, name), cls, p in zip(lga_meta, classes, proba)
+        ]
+
+        return jsonify({"year": year, "month": month, "mode": "historical", "results": results}), 200
+
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return jsonify({
+            "error": "Failed to generate regional snapshot.",
+            "details": str(e)
+        }), 500
