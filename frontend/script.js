@@ -195,7 +195,16 @@ function highlightLga(lgaName, riskClass, confidence = 1) {
     fillOpacity: opacityForConfidence(confidence),
   });
   layer.bringToFront();
-  map.fitBounds(layer.getBounds(), { padding: [60, 60], maxZoom: 11 });
+
+  // A longer, gentler ease than Leaflet's default (~0.25s) so the zoom
+  // into the predicted LGA feels deliberate rather than abrupt.
+  map.fitBounds(layer.getBounds(), {
+    padding: [60, 60],
+    maxZoom: 11,
+    animate: true,
+    duration: 1.4,
+    easeLinearity: 0.15,
+  });
 
   currentLgaLayer = layer;
 }
