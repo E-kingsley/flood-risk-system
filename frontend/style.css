@@ -327,6 +327,28 @@ button#snapshotBtn.active {
   background: var(--navy-950);
 }
 
+/* ---------- Plain Language Summary Card ---------- */
+
+.plain-summary {
+  background: var(--navy-800);
+  border-left: 4px solid var(--teal-500);
+  border-top: 1px solid var(--navy-700);
+  border-bottom: 1px solid var(--navy-700);
+  padding: 16px 20px;
+  margin-bottom: 1px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text-light);
+}
+
+.plain-summary p {
+  margin: 0;
+}
+
+.plain-summary p + p {
+  margin-top: 8px;
+}
+
 /* ---------- Result tiles (HealthMon-style stat cards) ---------- */
 
 .result-tiles {
@@ -572,6 +594,7 @@ button#snapshotBtn.active {
   color: var(--text-light);
 }
 
+.results-panel.collapsed #plainSummary,
 .results-panel.collapsed #resultTiles,
 .results-panel.collapsed #resultDetail,
 .results-panel.collapsed #outlookStrip,

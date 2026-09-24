@@ -10,6 +10,16 @@ const RISK_META = {
   2: { label: "High Risk", css: "high", color: "#ef4444" },
 };
 
+const FEATURE_PLAIN_LABELS = {
+  rainfall_anomaly_index: "unusually heavy rainfall in the area",
+  antecedent_precip_index: "rain that has built up over recent weeks",
+  normalised_discharge_ratio: "high river and water discharge levels",
+  terrain_vulnerability_score: "the low-lying, flood-prone terrain of this area",
+  peak_season_flag: "this period falling within the peak rainy season",
+  wetland_pct: "the amount of wetland in the area",
+  built_up_pct: "how built-up and developed the area is",
+};
+
 let map;
 let geojsonLayer;
 let lgaLayersByName = {}; // normalized LGA name -> Leaflet layer
@@ -375,6 +385,85 @@ function populateMonthYearDropdowns() {
   populateMonthYearDropdownsFor("monthSelect2", "yearSelect2");
 }
 
+/* ---------- Plain Language Summary Helpers ---------- */
+
+function confidencePhrase(topProb) {
+  if (topProb >= 0.85) return "the model is very confident about this";
+  if (topProb >= 0.60) return "the model is fairly confident about this";
+  return "this is a less certain, borderline call";
+}
+
+function modeBasisPhrase(mode) {
+  if (mode === "forecast") return "This is based on the latest weather forecast.";
+  if (mode === "recent") return "This is based on recently observed weather.";
+  return "This is based on the historical record for this month.";
+}
+
+function riskActionPhrase(riskClass) {
+  if (riskClass === 2) return "this may be a good time to take precautions and stay alert to official flood warnings.";
+  if (riskClass === 1) return "it is worth keeping an eye on updates as the period approaches.";
+  return "there is no particular flood concern for this period based on current data.";
+}
+
+function renderPlainSummary(result) {
+  const summaryEl = document.getElementById("plainSummary");
+  summaryEl.innerHTML = "";
+
+  const topProb = Math.max(
+    result.probabilities.low_risk,
+    result.probabilities.moderate_risk,
+    result.probabilities.high_risk
+  );
+
+  const riskLabel = RISK_META[result.predicted_risk_class].label;
+  const monthName = MONTH_NAMES[result.month - 1];
+
+  let featurePhrase = "local conditions";
+  if (result.top_contributing_features && result.top_contributing_features.length > 0) {
+    const rawKey = result.top_contributing_features[0].feature;
+    featurePhrase = FEATURE_PLAIN_LABELS[rawKey] || rawKey.replace(/_/g, " ");
+  }
+
+  const p1Text = `Flood risk in ${result.lga_name} for ${monthName} ${result.year} is predicted to be <strong>${riskLabel}</strong> (${confidencePhrase(topProb)}). The main driver behind this risk level is ${featurePhrase}.`;
+  const p2Text = `${modeBasisPhrase(result.mode)} In terms of action, ${riskActionPhrase(result.predicted_risk_class)}`;
+
+  const p1 = document.createElement("p");
+  p1.innerHTML = p1Text;
+  const p2 = document.createElement("p");
+  p2.innerHTML = p2Text;
+
+  summaryEl.appendChild(p1);
+  summaryEl.appendChild(p2);
+  summaryEl.classList.remove("hidden");
+}
+
+function appendOutlookTrendToSummary(outlookResults, startingRiskClass) {
+  if (!outlookResults || outlookResults.length === 0) return;
+
+  const summaryEl = document.getElementById("plainSummary");
+  const paragraphs = summaryEl.querySelectorAll("p");
+  if (paragraphs.length === 0) return;
+
+  const targetP = paragraphs[paragraphs.length - 1];
+  let trendSentence = "";
+
+  const differs = outlookResults.find((r) => r.predicted_risk_class !== startingRiskClass);
+
+  if (!differs) {
+    trendSentence = ` Over the following months, risk is expected to remain steady.`;
+  } else {
+    const newLabel = RISK_META[differs.predicted_risk_class].label;
+    const diffMonth = MONTH_NAMES[differs.month - 1];
+    if (differs.predicted_risk_class > startingRiskClass) {
+      trendSentence = ` Over the following months, risk is expected to rise to <strong>${newLabel}</strong> around ${diffMonth} ${differs.year}.`;
+    } else {
+      trendSentence = ` Over the following months, risk is expected to ease to <strong>${newLabel}</strong> around ${diffMonth} ${differs.year}.`;
+    }
+  }
+
+  targetP.innerHTML += trendSentence;
+}
+
 /* ---------- Predict ---------- */
 
 function setPredictLoading(isLoading) {
@@ -387,6 +476,10 @@ function setPredictLoading(isLoading) {
 }
 
 function hideAllResultViews() {
+  const plainSummary = document.getElementById("plainSummary");
+  plainSummary.innerHTML = "";
+  plainSummary.classList.add("hidden");
+
   document.getElementById("resultTiles").classList.add("hidden");
   document.getElementById("resultDetail").classList.add("hidden");
   document.getElementById("outlookStrip").classList.add("hidden");
@@ -429,6 +522,10 @@ async function loadRiskOutlook(lgaId, startMonth, startYear) {
   lastOutlookResults = results;
 
   if (results.length === 0) return;
+
+  if (lastPredictionResult) {
+    appendOutlookTrendToSummary(lastOutlookResults, lastPredictionResult.predicted_risk_class);
+  }
 
   const heading = document.createElement("span");
   heading.className = "outlook-heading";
@@ -480,6 +577,8 @@ function renderResult(result) {
   // Restore single prediction result state after hideAllResultViews wiped it
   lastPredictionResult = result;
   document.getElementById("outlookCsvBtn").disabled = false;
+
+  renderPlainSummary(result);
 
   document.getElementById("resultTiles").classList.remove("hidden");
   document.getElementById("resultDetail").classList.remove("hidden");
