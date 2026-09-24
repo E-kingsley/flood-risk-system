@@ -124,7 +124,16 @@ async function loadGeoJSON() {
   }
 }
 
-function highlightLga(lgaName, riskClass) {
+// Scales fill opacity by model confidence, so a shaky prediction reads
+// visually "softer" on the map than a confident one. Confidence is a
+// 0-1 top-class probability; opacity is clamped to a 0.3-0.85 range so
+// even low-confidence results stay visible against the base map style.
+function opacityForConfidence(confidence) {
+  const clamped = Math.max(0, Math.min(1, confidence));
+  return 0.3 + clamped * 0.55;
+}
+
+function highlightLga(lgaName, riskClass, confidence = 1) {
   // Reset the previously highlighted LGA back to the default style.
   if (currentLgaLayer) {
     currentLgaLayer.setStyle(defaultLgaStyle());
@@ -141,7 +150,7 @@ function highlightLga(lgaName, riskClass) {
     color: meta.color,
     weight: 3,
     fillColor: meta.color,
-    fillOpacity: 0.65,
+    fillOpacity: opacityForConfidence(confidence),
   });
   layer.bringToFront();
   map.fitBounds(layer.getBounds(), { padding: [60, 60], maxZoom: 11 });
@@ -273,7 +282,7 @@ function renderResult(result) {
   document.getElementById("probHigh").style.width = `${result.probabilities.high_risk * 100}%`;
   document.getElementById("probHighPct").textContent = `${(result.probabilities.high_risk * 100).toFixed(1)}%`;
 
-  highlightLga(result.lga_name, result.predicted_risk_class);
+  highlightLga(result.lga_name, result.predicted_risk_class, topProb);
 }
 
 async function handlePredictClick() {
