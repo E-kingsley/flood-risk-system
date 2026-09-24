@@ -202,7 +202,7 @@ function highlightLga(lgaName, riskClass, confidence = 1) {
   map.flyToBounds(layer.getBounds(), {
     padding: [60, 60],
     maxZoom: 11,
-    duration: 6,
+    duration: 4,
   });
 
   currentLgaLayer = layer;
