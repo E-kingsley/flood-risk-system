@@ -519,6 +519,48 @@ button#predictBtn:disabled {
   height: 340px;
 }
 
+/* ---------- Seasonal risk calendar ---------- */
+
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-x: auto;
+}
+
+.cal-row {
+  display: grid;
+  grid-template-columns: 46px repeat(12, 1fr);
+  gap: 3px;
+  align-items: center;
+  min-width: 520px;
+}
+
+.cal-header {
+  margin-bottom: 2px;
+}
+
+.cal-year-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cal-month-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.cal-cell {
+  height: 18px;
+  border-radius: 3px;
+  cursor: default;
+}
+
+.cal-cell-empty {
+  background: var(--navy-800);
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 768px) {

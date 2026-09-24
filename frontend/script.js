@@ -476,6 +476,44 @@ function renderHistoryChart(lgaName, records) {
   });
 }
 
+function renderHistoryCalendar(lgaName, records) {
+  const years = [...new Set(records.map((r) => r.year))].sort((a, b) => a - b);
+  const byYearMonth = {};
+  records.forEach((r) => {
+    byYearMonth[`${r.year}-${r.month}`] = r;
+  });
+
+  let html =
+    '<div class="cal-row cal-header"><div class="cal-year-label"></div>' +
+    MONTH_NAMES.map((m) => `<div class="cal-month-label">${m.slice(0, 3)}</div>`).join("") +
+    "</div>";
+
+  years.forEach((year) => {
+    html += `<div class="cal-row"><div class="cal-year-label">${year}</div>`;
+    for (let m = 1; m <= 12; m++) {
+      const rec = byYearMonth[`${year}-${m}`];
+      if (rec) {
+        const color = RISK_META[rec.predicted_risk_class].color;
+        const topProb = Math.max(
+          rec.probabilities.low_risk,
+          rec.probabilities.moderate_risk,
+          rec.probabilities.high_risk
+        );
+        const title = `${MONTH_NAMES[m - 1]} ${year}: ${RISK_META[rec.predicted_risk_class].label} (${(topProb * 100).toFixed(1)}%)`;
+        html += `<div class="cal-cell" style="background:${color}" title="${title}"></div>`;
+      } else {
+        html += '<div class="cal-cell cal-cell-empty" title="No data"></div>';
+      }
+    }
+    html += "</div>";
+  });
+
+  document.getElementById("histCalendarGrid").innerHTML = html;
+  document.getElementById("histCalendarTitle").textContent =
+    `${lgaName}: seasonal risk calendar, 2000 to 2024`;
+  document.getElementById("histCalendarCard").classList.remove("hidden");
+}
+
 async function handleHistoryLoad() {
   const lgaId = document.getElementById("histLgaSelect").value;
   if (!lgaId) return;
@@ -500,6 +538,7 @@ async function handleHistoryLoad() {
     document.getElementById("histEmpty").classList.add("hidden");
     renderHistoryTiles(historyRecords);
     renderHistoryChart(historyLgaName, historyRecords);
+    renderHistoryCalendar(historyLgaName, historyRecords);
     document.getElementById("histCsvBtn").disabled = false;
   } catch (err) {
     showHistStatus("Couldn't reach the backend. Is your Flask server running?", true);
