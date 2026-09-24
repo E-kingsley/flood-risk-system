@@ -43,9 +43,6 @@ function bindTabs() {
       btn.classList.add("active");
       document.getElementById(`${btn.dataset.tab}View`).classList.add("active");
 
-      // The map needs a resize nudge whenever its container becomes
-      // visible again after being display:none (Leaflet can't measure
-      // a hidden container correctly).
       if (btn.dataset.tab === "predict" && map) {
         setTimeout(() => map.invalidateSize(), 50);
       }
@@ -66,7 +63,6 @@ function bindResultsToggle() {
   btn.addEventListener("click", () => {
     const collapsed = panel.classList.toggle("collapsed");
     btn.textContent = collapsed ? "Show results ▸" : "Hide results ▾";
-    // Leaflet doesn't know its container resized until told.
     setTimeout(() => map.invalidateSize(), 260);
   });
 }
@@ -166,17 +162,12 @@ async function loadGeoJSON() {
   }
 }
 
-// Scales fill opacity by model confidence, so a shaky prediction reads
-// visually "softer" on the map than a confident one. Confidence is a
-// 0-1 top-class probability; opacity is clamped to a 0.3-0.85 range so
-// even low-confidence results stay visible against the base map style.
 function opacityForConfidence(confidence) {
   const clamped = Math.max(0, Math.min(1, confidence));
   return 0.3 + clamped * 0.55;
 }
 
 function highlightLga(lgaName, riskClass, confidence = 1) {
-  // Reset the previously highlighted LGA back to the default style.
   if (currentLgaLayer) {
     currentLgaLayer.setStyle(defaultLgaStyle());
   }
@@ -196,9 +187,6 @@ function highlightLga(lgaName, riskClass, confidence = 1) {
   });
   layer.bringToFront();
 
-    // flyToBounds gives a real cinematic pan-and-zoom (unlike fitBounds'
-  // animate option, which is a weak linear ease) — this is what makes
-  // the zoom into the predicted LGA feel deliberate and satisfying.
   map.flyToBounds(layer.getBounds(), {
     padding: [60, 60],
     maxZoom: 11,
@@ -362,7 +350,7 @@ function populateLgaDropdown(stateName) {
       .map((l) => `<option value="${l.lga_id}">${l.lga_name}</option>`)
       .join("");
   lgaSelect.disabled = false;
-  predictBtn.disabled = true; // re-enabled once an LGA is actually picked
+  predictBtn.disabled = true;
 }
 
 function populateMonthYearDropdownsFor(monthId, yearId) {
@@ -371,8 +359,6 @@ function populateMonthYearDropdownsFor(monthId, yearId) {
     .map((name, idx) => `<option value="${idx + 1}">${name}</option>`)
     .join("");
 
-  // Historical data covers 2000-2024; months beyond that route through
-  // live forecasting (up to ~7 months ahead) on the backend automatically.
   const yearSelect = document.getElementById(yearId);
   const years = [];
   for (let y = 2027; y >= 2000; y--) years.push(y);
@@ -400,7 +386,70 @@ function setPredictLoading(isLoading) {
 function hideAllResultViews() {
   document.getElementById("resultTiles").classList.add("hidden");
   document.getElementById("resultDetail").classList.add("hidden");
+  document.getElementById("outlookStrip").classList.add("hidden");
   document.getElementById("compareResult").classList.add("hidden");
+}
+
+async function loadRiskOutlook(lgaId, startMonth, startYear) {
+  const strip = document.getElementById("outlookStrip");
+  strip.classList.add("hidden");
+  strip.innerHTML = "";
+
+  let currentMonth = Number(startMonth) + 1;
+  let currentYear = Number(startYear);
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear += 1;
+  }
+
+  const results = [];
+
+  for (let i = 0; i < 6; i++) {
+    try {
+      const data = await fetchPrediction(lgaId, currentMonth, currentYear);
+      results.push(data);
+
+      currentMonth += 1;
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear += 1;
+      }
+    } catch (err) {
+      break;
+    }
+  }
+
+  if (results.length === 0) return;
+
+  const heading = document.createElement("span");
+  heading.className = "outlook-heading";
+  heading.textContent = `Outlook: next ${results.length} month${results.length > 1 ? "s" : ""}`;
+
+  const chipsContainer = document.createElement("div");
+  chipsContainer.className = "outlook-chips";
+
+  results.forEach((res) => {
+    const meta = RISK_META[res.predicted_risk_class];
+    const topProb = Math.max(
+      res.probabilities.low_risk,
+      res.probabilities.moderate_risk,
+      res.probabilities.high_risk
+    );
+    const monthAbbr = MONTH_NAMES[res.month - 1].slice(0, 3);
+    const confidencePct = (topProb * 100).toFixed(1);
+
+    const chip = document.createElement("div");
+    chip.className = "outlook-chip";
+    chip.style.backgroundColor = meta.color;
+    chip.textContent = monthAbbr;
+    chip.title = `${MONTH_NAMES[res.month - 1]} ${res.year}: ${meta.label} (${confidencePct}% confidence)`;
+
+    chipsContainer.appendChild(chip);
+  });
+
+  strip.appendChild(heading);
+  strip.appendChild(chipsContainer);
+  strip.classList.remove("hidden");
 }
 
 function renderResult(result) {
@@ -461,6 +510,11 @@ function renderResult(result) {
 
   highlightLga(result.lga_name, result.predicted_risk_class, topProb);
   showAlertToast(result);
+
+  const isCompare = document.getElementById("compareToggle").checked;
+  if (result.mode === "forecast" && !isCompare) {
+    loadRiskOutlook(result.lga_id, result.month, result.year);
+  }
 }
 
 function fillComparePeriod(prefix, result, meta, topProb) {
@@ -502,7 +556,6 @@ function renderComparison(a, b) {
   fillComparePeriod("compareA", a, metaA, topA);
   fillComparePeriod("compareB", b, metaB, topB);
 
-  // Highlight using the second (later) period's result on the map.
   highlightLga(b.lga_name, b.predicted_risk_class, topB);
   showAlertToast(b);
 }
@@ -564,11 +617,10 @@ async function handlePredictClick() {
   }
 }
 
-
 /* ---------- History & Analytics ---------- */
 
 let historyChart = null;
-let historyRecords = [];   // records for the LGA currently shown
+let historyRecords = [];
 let historyLgaName = "";
 
 function populateHistoryStates(states) {
@@ -599,12 +651,10 @@ function populateHistoryLgas(stateName) {
   loadBtn.disabled = true;
 }
 
-// If the person already picked an LGA on the Predict tab, start the
-// History tab on the same one so they don't have to choose twice.
 function prefillHistoryFromPredict() {
   const histState = document.getElementById("histStateSelect");
   const histLga = document.getElementById("histLgaSelect");
-  if (histState.value) return; // already chosen here, leave it alone
+  if (histState.value) return;
 
   const predState = document.getElementById("stateSelect").value;
   const predLga = document.getElementById("lgaSelect").value;
@@ -664,7 +714,6 @@ function renderHistoryChart(lgaName, records) {
   if (historyChart) historyChart.destroy();
 
   const ctx = document.getElementById("histChart").getContext("2d");
-  // Bars sit at height 1/2/3 so every month is visible, including Low months.
   const heights = values.map((v) => v + 1);
   const tierLabels = { 1: "Low", 2: "Moderate", 3: "High" };
 
