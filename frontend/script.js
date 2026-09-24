@@ -196,14 +196,13 @@ function highlightLga(lgaName, riskClass, confidence = 1) {
   });
   layer.bringToFront();
 
-  // A longer, gentler ease than Leaflet's default (~0.25s) so the zoom
-  // into the predicted LGA feels deliberate rather than abrupt.
-  map.fitBounds(layer.getBounds(), {
+    // flyToBounds gives a real cinematic pan-and-zoom (unlike fitBounds'
+  // animate option, which is a weak linear ease) — this is what makes
+  // the zoom into the predicted LGA feel deliberate and satisfying.
+  map.flyToBounds(layer.getBounds(), {
     padding: [60, 60],
     maxZoom: 11,
-    animate: true,
-    duration: 1.4,
-    easeLinearity: 0.15,
+    duration: 2.5,
   });
 
   currentLgaLayer = layer;
